@@ -1,0 +1,39 @@
+---
+- name: see if uptime is greater than a certian threshold 
+  hosts: all
+  connection: local
+  vars:
+    v_uptime_weeks: '1'
+  
+  tasks:
+     
+  - name: show version
+    ios_command: 
+      commands: "show version"
+    register: v_show_version
+
+  - debug: 
+      msg: "{{v_show_version}}"
+   
+  - name: get uptime from output list
+    set_fact: 
+      v_uptime: "{{item}}"
+    with_items: "{{v_show_version.stdout_lines}}"
+    when: "'Uptime' in item"   
+
+  - debug: 
+      msg: "{{v_uptime}}"
+      
+  - name: get uptime weeks string from uptime
+    set_fact: 
+      v_uptime_weeks_string: "{{ v_uptime | regex_search('[0-9]*[ ]week')}}"
+      
+  - name: get numer of weeks up
+    set_fact: 
+      v_weeks: "{{ v_uptime_weeks_string | regex_search('[0-9]*')}}"
+ 
+  - name: do something if uptime weeks is greater than threshold
+    ios_command:
+      commands: "show clock"
+    when: v_weeks|int >= v_uptime_weeks|int    
+      
